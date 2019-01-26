@@ -11,10 +11,14 @@ Inputs:
   2. List of Census Blockgroup GEOIDs or Census Tract GEOIDs of interest.
 
 Outputs:
-  This code outputs two CSVs:
-  1. The areas of interest are the workplace location
-  2. The areas of interest are the employee's home location
-
+  This code outputs two CSVs with home GEOID, work GEOID, and quantities of workers moving:
+  1. _home: 
+      - homeTractGEOID shows your GEOIDs of interest
+      - workTractGEOID shows where employees in your GEOIDs go to work
+  2. _work: 
+      - homeTractGEOID shows where employees in your GEOIDs are coming from
+      - workTractGEOID shows your GEOIDs of interest
+      
 Tips for post processing:
   - Using ArcGIS create a web of employee movements:
     1. Obtain Census TIGER shapefiles of Blockgroups or Tracts
