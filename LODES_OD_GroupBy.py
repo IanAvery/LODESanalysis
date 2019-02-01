@@ -1,33 +1,38 @@
 import pandas as pd
+import os
 import time
 
-def aggregateWork(df, aggregationLevel, outputPath):
-	if aggregationLevel == 'Tract':
-		aggDF = df
-		aggDF = aggDF[aggDF['workTractGEOID'].isin(tracts)]
-		print(aggDF.head())
-		aggDF = aggDF.groupby(['workTractGEOID', 'homeTractGEOID']).sum()[fields]
-		print(aggDF.head())
-		aggDF.to_csv(outputPath)
-	if aggregationLevel == 'Blockgroup':
-		aggDF = df
-		aggDF = aggDF[aggDF['workBkgpGEOID'].isin(blockgroups)]
-		print(aggDF.head())
-		aggDF = aggDF.groupby(['workBkgpGEOID', 'homeBkgpGEOID']).sum()[fields]
-		print(aggDF.head())
-		aggDF.to_csv(outputPath)
+"""
+~~~~~~~~~~~~~~~~~~~~~~~
+LODES Data Aggregation
+~~~~~~~~~~~~~~~~~~~~~~~
 
-def aggregateHome(df, aggregationLevel, outputPath):
+Steps:
+1. Add raw LODES Origin-Destination data to inputCSV path
+2. Choose 'Tracts' or 'Blockgroups' for aggregationLevel variable
+3. Enter your list of Tracts of Blockgroups of interest in the GEOIDs list
+4. Run LODES_OD_GroupBy.py in terminal, outputs will be saved to same directory as input data
+
+"""
+
+def aggregateBlocks(df, homeOrWork, aggregationLevel):
 	if aggregationLevel == 'Tract':
 		aggDF = df
-		aggDF = aggDF[aggDF['homeTractGEOID'].isin(tracts)]
-		aggDF = aggDF.groupby(['homeTractGEOID', 'workTractGEOID']).sum()[fields]
-		aggDF.to_csv(outputPath)
+		aggDF = aggDF[aggDF[homeOrWork+'GEOID'].isin(GEOIDs)]
+		aggDF = aggDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
+
 	if aggregationLevel == 'Blockgroup':
 		aggDF = df
-		aggDF = aggDF[aggDF['homeBkgpGEOID'].isin(blockgroups)]
-		aggDF = aggDF.groupby(['homeBkgpGEOID', 'workBkgpGEOID']).sum()[fields]
-		aggDF.to_csv(outputPath)
+		aggDF = aggDF[aggDF[homeOrWork+'GEOID'].isin(GEOIDs)]
+		aggDF = aggDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
+
+	aggDF = aggDF.reset_index()
+
+	return aggDF
+
+def groupAggregations(df, GEOIDs, fields, homeOrWork):
+	groupDF = df.groupby([homeOrWork+'GEOID'])[fields].sum().reset_index()
+	return groupDF
 
 if __name__ == '__main__':
 
@@ -35,23 +40,28 @@ if __name__ == '__main__':
 	start = time.time()
 
 	## File Paths
-	inputCSV = '/Volumes/sdc-sus$/CEE224Y/Resilience/Data_Library/LODES 2015/Origin_Destination/ca_od_2015_combined.csv'
-	outputWorkCSV = '/Volumes/sdc-sus$/CEE224Y/Resilience/LODES_analysis/NorthFairOaks_Work_Blockgroup.csv'
-	outputHomeCSV = '/Volumes/sdc-sus$/CEE224Y/Resilience/LODES_analysis/NorthFairOaks_Home_Blockgroup.csv'
+	inputCSV = '/Users/ianbick/Desktop/LODES_Testing/ca_od_main_JT05_2015.csv'
+	basename = os.path.splitext(os.path.basename(inputCSV))[0]
+	pathname = os.path.dirname(inputCSV)
+
+	outputWorkCSV = pathname + '/' + basename + '_Work.csv'
+	outputHomeCSV = pathname + '/' + basename + '_Home.csv'
+
+	outputWorkGroupCSV = pathname + '/' + basename + '_WorkGrouped.csv'
+	outputHomeGroupCSV = pathname + '/' + basename + '_HomeGrouped.csv'
 
 	## Data Processing Options
 	# Can aggregate LODES data to 'Tract' or 'Blockgroup', or not at all and maintain Block aggegation
 	aggregationLevel = 'Blockgroup'
 
-	## Which census tract(s) are you interested in? 
-	tracts = ['06081610500','06081610601','06081610602'] # Use for North Fair Oaks
-	#tracts = ['06001402800']
+	if aggregationLevel == 'Blockgroup':
+		# Which census blockgroup(s) are you interested in?
+		GEOIDs = ['060014028001','060014029001']
 
-	## Which census blockgroup(s) are you interested in?
-	blockgroups = ['060816105001','060816105004','060816106021','060816105002', '060816105003', '060816106024','060816106023','060816106022', '060816106011', '060816106013', '060816106012'] # Use for North Fair Oaks
-	#blockgroups = ['060014028001']
+	if aggregationLevel == 'Tract':
+		# Which census tract(s) are you interested in?
+		GEOIDs = ['06081610500','06081610601','06081610602']
 	
-
 	# Fields to aggregate data to tracts
 	fields = ['S000', 'SA01', 'SA02', 'SA03', 'SE01', 'SE02', 'SE03', 'SI01', 'SI02', 'SI03']
 
@@ -65,19 +75,31 @@ if __name__ == '__main__':
 	df['w_geocode'] = df['w_geocode'].str.zfill(15)
 	df['h_geocode'] = df['h_geocode'].str.zfill(15)
 
-	# Add GEOIDs for tracts and blockgroups
-	df['workTractGEOID'] = df['w_geocode'].str.slice(0, 11)
-	df['homeTractGEOID'] = df['h_geocode'].str.slice(0, 11)
-
-	df['workBkgpGEOID'] = df['w_geocode'].str.slice(0, 12)
-	df['homeBkgpGEOID'] = df['h_geocode'].str.slice(0, 12)
-
 	# Remove duplicate rows
 	df = df.drop_duplicates(subset=['w_geocode', 'h_geocode'], keep='first')
 
-	# Run aggregation functions
-	aggregateWork(df, aggregationLevel, outputWorkCSV)
-	aggregateHome(df, aggregationLevel, outputHomeCSV)
+	# Add GEOIDs for tracts and blockgroups
+	if aggregationLevel == 'Blockgroup':
+		df['workGEOID'] = df['w_geocode'].str.slice(0, 12)
+		df['homeGEOID'] = df['h_geocode'].str.slice(0, 12)
+
+	if aggregationLevel == 'Tract':
+		df['workGEOID'] = df['w_geocode'].str.slice(0, 11)
+		df['homeGEOID'] = df['h_geocode'].str.slice(0, 11)
+
+	# Run block aggregation functions
+	workAggregation = aggregateBlocks(df, 'work' ,aggregationLevel)
+	homeAggregation = aggregateBlocks(df, 'home' ,aggregationLevel)
+
+	workAggregation.to_csv(outputWorkCSV)
+	homeAggregation.to_csv(outputHomeCSV)
+
+	# Run grouping functions
+	workGEOIDGroup = groupAggregations(workAggregation, GEOIDs, fields, 'work')
+	homeGEOIDGroup = groupAggregations(homeAggregation, GEOIDs, fields, 'home')
+
+	workGEOIDGroup.to_csv(outputWorkGroupCSV)
+	homeGEOIDGroup.to_csv(outputHomeGroupCSV)
 
 	end = time.time()
 	print("{} seconds".format((end - start)))
