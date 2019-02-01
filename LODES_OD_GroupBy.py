@@ -95,8 +95,8 @@ if __name__ == '__main__':
 	homeAggregation.to_csv(outputHomeCSV)
 
 	# Run grouping functions
-	workGEOIDGroup = groupAggregations(workAggregation, GEOIDs, fields, 'work')
-	homeGEOIDGroup = groupAggregations(homeAggregation, GEOIDs, fields, 'home')
+	workGEOIDGroup = groupAggregations(workAggregation, GEOIDs, fields, 'home')
+	homeGEOIDGroup = groupAggregations(homeAggregation, GEOIDs, fields, 'work')
 
 	workGEOIDGroup.to_csv(outputWorkGroupCSV)
 	homeGEOIDGroup.to_csv(outputHomeGroupCSV)
