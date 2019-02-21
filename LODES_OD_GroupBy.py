@@ -18,22 +18,22 @@ Steps:
 def aggregateBlocks(df, homeOrWork, aggregationLevel):
 	if aggregationLevel == 'Tract':
 		aggDF = df
-		aggDF = aggDF[aggDF[homeOrWork+'GEOID'].isin(GEOIDs)]
-		aggDF = aggDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
+		filteredDF = aggDF[aggDF[homeOrWork+'GEOID'].isin(GEOIDs)]
+		finalDF = filteredDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
 
 	if aggregationLevel == 'Blockgroup':
 		aggDF = df
-		aggDF = aggDF[aggDF[homeOrWork+'GEOID'].isin(GEOIDs)]
-		aggDF = aggDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
+		filteredDF = aggDF[aggDF[homeOrWork+'GEOID'].isin(GEOIDs)]
+		finalDF = filteredDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
 
 	if aggregationLevel == 'Block':
 		aggDF = df
-		aggDF = aggDF[aggDF[homeOrWork+'GEOIDbkgp'].isin(GEOIDs)]
-		aggDF = aggDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
+		filteredDF = aggDF[aggDF[homeOrWork+'GEOIDbkgp'].isin(GEOIDs)]
+		finalDF = filteredDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
 
-	aggDF = aggDF.reset_index()
+	finalDF = finalDF.reset_index()
 
-	return aggDF
+	return finalDF
 
 def groupAggregations(df, GEOIDs, fields, homeOrWork):
 	groupDF = df.groupby([homeOrWork+'GEOID'])[fields].sum().reset_index()
