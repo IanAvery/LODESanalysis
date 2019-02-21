@@ -9,7 +9,7 @@ LODES Data Aggregation
 
 Steps:
 1. Add raw LODES Origin-Destination data to inputCSV path
-2. Choose 'Tracts' or 'Blockgroups' for aggregationLevel variable
+2. Choose 'Tracts', 'Blocks', or 'Blockgroups' for aggregationLevel variable
 3. Enter your list of Tracts of Blockgroups of interest in the GEOIDs list
 4. Run LODES_OD_GroupBy.py in terminal, outputs will be saved to same directory as input data
 
@@ -24,6 +24,11 @@ def aggregateBlocks(df, homeOrWork, aggregationLevel):
 	if aggregationLevel == 'Blockgroup':
 		aggDF = df
 		aggDF = aggDF[aggDF[homeOrWork+'GEOID'].isin(GEOIDs)]
+		aggDF = aggDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
+
+	if aggregationLevel == 'Block':
+		aggDF = df
+		aggDF = aggDF[aggDF[homeOrWork+'GEOIDbkgp'].isin(GEOIDs)]
 		aggDF = aggDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
 
 	aggDF = aggDF.reset_index()
@@ -52,7 +57,11 @@ if __name__ == '__main__':
 
 	## Data Processing Options
 	# Can aggregate LODES data to 'Tract' or 'Blockgroup', or not at all and maintain Block aggegation
-	aggregationLevel = 'Blockgroup'
+	aggregationLevel = 'Block'
+
+	if aggregationLevel == 'Block':
+		# Which census blockgroups are you interested in? (Output will be blocks...)
+		GEOIDs = ['060014028001','060014029001']
 
 	if aggregationLevel == 'Blockgroup':
 		# Which census blockgroup(s) are you interested in?
@@ -75,7 +84,7 @@ if __name__ == '__main__':
 	df['w_geocode'] = df['w_geocode'].str.zfill(15)
 	df['h_geocode'] = df['h_geocode'].str.zfill(15)
 
-	# Remove duplicate rows
+	# Remove rows with duplicate origins and destinations
 	df = df.drop_duplicates(subset=['w_geocode', 'h_geocode'], keep='first')
 
 	# Add GEOIDs for tracts and blockgroups
@@ -86,6 +95,14 @@ if __name__ == '__main__':
 	if aggregationLevel == 'Tract':
 		df['workGEOID'] = df['w_geocode'].str.slice(0, 11)
 		df['homeGEOID'] = df['h_geocode'].str.slice(0, 11)
+
+	if aggregationLevel == 'Block':
+		df['workGEOIDbkgp'] = df['w_geocode'].str.slice(0, 12)
+		df['homeGEOIDbkgp'] = df['h_geocode'].str.slice(0, 12)
+		df['workGEOID'] = df['w_geocode']
+		df['homeGEOID'] = df['h_geocode']
+
+	print(df)
 
 	# Run block aggregation functions
 	workAggregation = aggregateBlocks(df, 'work' ,aggregationLevel)
@@ -102,5 +119,6 @@ if __name__ == '__main__':
 	homeGEOIDGroup.to_csv(outputHomeGroupCSV)
 
 	end = time.time()
+
 	print("{} seconds".format((end - start)))
 
