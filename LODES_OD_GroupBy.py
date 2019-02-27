@@ -28,15 +28,21 @@ def aggregateBlocks(df, homeOrWork, aggregationLevel):
 
 	if aggregationLevel == 'Block':
 		aggDF = df
+		print('aggDF: ', aggDF)
 		filteredDF = aggDF[aggDF[homeOrWork+'GEOIDbkgp'].isin(GEOIDs)]
-		finalDF = filteredDF.groupby(['workGEOID', 'homeGEOID']).sum()[fields]
+		print('filteredDF: ', filteredDF)
+		finalDF = filteredDF.groupby(['workGEOID', 'homeGEOID', 'workGEOIDbkgp', 'homeGEOIDbkgp']).sum()[fields]
+		print('finalDF: ', finalDF)
 
 	finalDF = finalDF.reset_index()
 
 	return finalDF
 
-def groupAggregations(df, GEOIDs, fields, homeOrWork):
-	groupDF = df.groupby([homeOrWork+'GEOID'])[fields].sum().reset_index()
+def groupAggregations(df, GEOIDs, fields, homeOrWork, aggregationLevel):
+	if aggregationLevel == 'Block':
+		groupDF = df.groupby([homeOrWork+'GEOIDbkgp'], as_index=False)[fields].sum().reset_index()		
+	else:
+		groupDF = df.groupby([homeOrWork+'GEOID'], as_index=False)[fields].sum().reset_index()
 	return groupDF
 
 if __name__ == '__main__':
@@ -47,7 +53,7 @@ if __name__ == '__main__':
 	## File Paths
 	inputCSV = '/Users/ianbick/Desktop/LODES_Testing/ca_od_main_JT05_2015.csv'
 	basename = os.path.splitext(os.path.basename(inputCSV))[0]
-	pathname = os.path.dirname(inputCSV)
+	pathname = '/Users/ianbick/Desktop/LODES_Testing'
 
 	outputWorkCSV = pathname + '/' + basename + '_Work.csv'
 	outputHomeCSV = pathname + '/' + basename + '_Home.csv'
@@ -61,7 +67,7 @@ if __name__ == '__main__':
 
 	if aggregationLevel == 'Block':
 		# Which census blockgroups are you interested in? (Output will be blocks...)
-		GEOIDs = ['060014028001','060014029001']
+		GEOIDs = ['060014028001']
 
 	if aggregationLevel == 'Blockgroup':
 		# Which census blockgroup(s) are you interested in?
@@ -112,8 +118,8 @@ if __name__ == '__main__':
 	homeAggregation.to_csv(outputHomeCSV)
 
 	# Run grouping functions
-	workGEOIDGroup = groupAggregations(workAggregation, GEOIDs, fields, 'home')
-	homeGEOIDGroup = groupAggregations(homeAggregation, GEOIDs, fields, 'work')
+	workGEOIDGroup = groupAggregations(workAggregation, GEOIDs, fields, 'home', aggregationLevel)
+	homeGEOIDGroup = groupAggregations(homeAggregation, GEOIDs, fields, 'work', aggregationLevel)
 
 	workGEOIDGroup.to_csv(outputWorkGroupCSV)
 	homeGEOIDGroup.to_csv(outputHomeGroupCSV)
